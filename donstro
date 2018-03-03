@@ -1,0 +1,82 @@
+#!/bin/bash
+
+VERSION=${VERSION:-$(cat VERSION)}
+STAGE=${STAGE:-test}
+REMOTE_DONSTRO_ROOT=${DONSTRO_ROOT:-donstro}
+
+. donstro/${STAGE}/donstro.env
+
+remote_app_root() {
+  echo ${REMOTE_DONSTRO_ROOT}/${APP_NAME}/${APP_NAME}_${STAGE}
+}
+
+local_compose_file() {
+  echo donstro/${STAGE}/docker-compose.yml
+}
+
+local_remote_env_file() {
+  echo donstro/${STAGE}/remote.env
+}
+
+remote_compose_file() {
+  echo $(remote_app_root)/docker-compose.yml
+}
+
+environment() {
+  [[ -f $(local_remote_env_file) ]] && cat $(local_remote_env_file) | xargs
+}
+
+remote() {
+  echo running_remote "$@"
+  eval "ssh ${USER}@${HOST} $@"
+}
+
+remote_compose() {
+  remote "$(environment) VERSION=$VERSION docker-compose -f $(remote_compose_file) $@"
+}
+
+remote_compose_run() {
+  remote_compose run --rm ${APP_NAME} $@
+}
+
+setup_remote_donstro() {
+  remote mkdir -p $(remote_app_root)
+  scp $(local_compose_file) ${USER}@${HOST}:$(remote_compose_file)
+  $SETUP_APP
+}
+usage() {
+  cat << EOUSAGE
+  usage: $0 <compose-commmand>
+EOUSAGE
+}
+
+
+command=$1
+
+case $command in
+  setup)
+    setup_remote_donstro
+    ;;
+  up)
+    remote_compose up -d
+    ;;
+
+  run)
+    shift
+    remote_compose_run $@
+    ;;
+  rake)
+    shift
+    remote_compose run rake $@
+    ;;
+  --help)
+    usage
+    ;;
+  -h)
+    usage
+    ;;
+  *)
+    remote_compose $@
+    ;;
+esac
+
