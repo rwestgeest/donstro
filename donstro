@@ -46,7 +46,14 @@ setup_remote_donstro() {
 }
 usage() {
   cat << EOUSAGE
-  usage: $0 <compose-commmand>
+  usage: $0 command [args]
+
+  where command is one of
+  - setup : setup donstro remotely and setup your app
+  - run   : run a command in your remote container
+  - rake  : run a rake task in your remote container
+  - or any other docker-compose commmand
+
 EOUSAGE
 }
 
@@ -67,7 +74,7 @@ case $command in
     ;;
   rake)
     shift
-    remote_compose run rake $@
+    remote_compose_run rake $@
     ;;
   --help)
     usage
