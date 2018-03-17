@@ -26,12 +26,23 @@ environment() {
   [[ -f $(local_remote_env_file) ]] && cat $(local_remote_env_file) | xargs
 }
 
+run() {
+  echo running "$@"
+  $@
+}
+
 remote() {
   echo running_remote "$@"
   eval "ssh ${USER}@${HOST} $@"
 }
 
+ensure_remote_compose_file() {
+  remote mkdir -p $(remote_app_root)
+  run scp $(local_compose_file) ${USER}@${HOST}:$(remote_compose_file)
+}
+
 remote_compose() {
+  ensure_remote_compose_file
   remote "$(environment) VERSION=$VERSION docker-compose -f $(remote_compose_file) $@"
 }
 
@@ -40,9 +51,7 @@ remote_compose_run() {
 }
 
 setup_remote_donstro() {
-  remote mkdir -p $(remote_app_root)
-  scp $(local_compose_file) ${USER}@${HOST}:$(remote_compose_file)
-  $SETUP_APP
+  remote_compose_run $SETUP_APP
 }
 usage() {
   cat << EOUSAGE
@@ -57,6 +66,7 @@ usage() {
 EOUSAGE
 }
 
+echo Running donstro in stage $STAGE
 
 command=$1
 
