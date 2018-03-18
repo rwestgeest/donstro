@@ -14,8 +14,20 @@ local_compose_file() {
   echo donstro/${STAGE}/docker-compose.yml
 }
 
-local_remote_env_file() {
-  echo donstro/${STAGE}/remote.env
+remote_env() {
+  local env_file=donstro/${STAGE}/remote.env
+  [[ -f ${env_file} ]] && cat ${env_file} 
+}
+
+remote_secrets() {
+  local secrets_file=donstro/${STAGE}/remote.secrets
+  local secrets_encr=${secrets_file}.gpg
+  if [ ! -f ${secrets_file} ]
+  then
+    [[ -f ${secrets_encr} ]] || return
+    gpg --output ${secrets_file} --decrypt ${secrets_encr}
+  fi
+  cat ${secrets_file} | xargs
 }
 
 remote_compose_file() {
@@ -23,7 +35,7 @@ remote_compose_file() {
 }
 
 environment() {
-  [[ -f $(local_remote_env_file) ]] && cat $(local_remote_env_file) | xargs
+  echo $(remote_env) $(remote_secrets)
 }
 
 run() {
