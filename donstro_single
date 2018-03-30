@@ -38,7 +38,7 @@ run() {
 
 remote() {
   echo running_remote "$@"
-  eval "ssh ${USER}@${HOST} $@"
+  eval "ssh ${USER}@${HOST} -t $@"
 }
 
 ensure_remote_compose_file() {
