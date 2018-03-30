@@ -1,0 +1,105 @@
+#!/bin/bash
+
+REMOTE_DONSTRO_ROOT=${DONSTRO_ROOT:-donstro}
+
+. donstro/donstro.env
+
+remote_app_root() {
+  echo ${REMOTE_DONSTRO_ROOT}/${APP_NAME}
+}
+
+local_compose_file() {
+  echo donstro/docker-compose.yml
+}
+
+remote_secrets() {
+  local secrets_file=donstro/remote.secrets
+  local secrets_encr=${secrets_file}.gpg
+  if [ ! -f ${secrets_file} ]
+  then
+    [[ -f ${secrets_encr} ]] || return
+    gpg --output ${secrets_file} --decrypt ${secrets_encr}
+  fi
+  cat ${secrets_file} | xargs
+}
+
+remote_compose_file() {
+  echo $(remote_app_root)/docker-compose.yml
+}
+
+environment() {
+  echo $(remote_secrets)
+}
+
+run() {
+  echo running "$@"
+  $@
+}
+
+remote() {
+  echo running_remote "$@"
+  eval "ssh ${USER}@${HOST} $@"
+}
+
+ensure_remote_compose_file() {
+  remote mkdir -p $(remote_app_root)
+  run scp $(local_compose_file) ${USER}@${HOST}:$(remote_compose_file)
+}
+
+remote_compose() {
+  ensure_remote_compose_file
+  remote "$(environment) docker-compose -f $(remote_compose_file) $@"
+}
+
+remote_compose_run() {
+  remote_compose run --rm $@
+}
+
+setup_remote_donstro() {
+  local app_name=$1
+  remote_compose_run $app_name $SETUP_APP
+}
+usage() {
+  cat << EOUSAGE
+  usage: $0 command [args]
+
+  where command is one of
+  - setup service name              : setup donstro remotely and setup your app
+  - run   service_name [parameters] : run a command in your remote container
+  - rake  service_name [parameters] : run a rake task in your remote container
+  - or any other docker-compose commmand
+
+EOUSAGE
+}
+
+command=$1
+
+case $command in
+  setup)
+    shift
+    setup_remote_donstro $1
+    ;;
+  up)
+    shift
+    remote_compose up -d $1
+    ;;
+
+  run)
+    shift
+    remote_compose_run $@
+    ;;
+  rake)
+    shift
+    remote_compose_run rake $@
+    ;;
+  --help)
+    usage
+    ;;
+  -h)
+    usage
+    ;;
+  *)
+    remote_compose $@
+    ;;
+esac
+
