@@ -66,11 +66,15 @@ setup_remote_donstro() {
   local app_name=$1
   remote_compose_run $app_name $SETUP_APP
 }
+remote_docker_login() {
+  remote '"aws ecr get-login --no-include-email | sh"'
+}
 usage() {
   cat << EOUSAGE
   usage: options $0 command [args]
 
   where command is one of
+  - login                           : login in to docker on remote machine
   - setup service_name              : setup donstro remotely and setup your app
   - up    service_name              : set the remote service up
   - run   service_name [parameters] : run a command in your remote container
@@ -110,6 +114,9 @@ done
 command=$1
 
 case $command in
+  login)
+    remote_docker_login
+    ;;
   setup)
     shift
     setup_remote_donstro $1
