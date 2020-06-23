@@ -30,8 +30,18 @@ remote_compose_file() {
   echo $(remote_app_root)/docker-compose.yml
 }
 
+remote_non_secrets() {
+  local env_file=donstro/remote.env
+  if [ -f ${env_file} ]
+  then
+    cat ${env_file} | xargs
+  else
+    echo ''
+  fi
+}
+
 environment() {
-  echo $(remote_secrets)
+  echo $(remote_secrets) $(remote_non_secrets)
 }
 
 is_verbose() {
