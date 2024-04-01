@@ -65,7 +65,7 @@ ensure_remote_compose_file() {
 
 remote_compose() {
   ensure_remote_compose_file
-  remote "$(environment) docker-compose -f $(remote_compose_file) $@"
+  remote "$(environment) docker compose -f $(remote_compose_file) $@"
 }
 
 remote_compose_run() {
